@@ -1,0 +1,62 @@
+#!/bin/bash
+
+function usage {
+  echo "Usage:
+  -n  Name for the running instance of anyconnect
+  -d  Stop the running instance of anyconnect
+Examples:
+  (start) $ sudo anyconnect-manager -n example
+  (stop)  $ sudo anyconnect-manager -n example -d"
+  exit
+}
+
+function launch {
+  CONTAINER_NAME=anyconnect-client
+  if [ -v CONNECTION_NAME ]; then
+    CONTAINER_NAME+="-${CONNECTION_NAME}"
+  fi
+  
+  # TODO: Detect if the container is already running.
+  
+  # TODO: check for available ports for binding.
+  
+  su -c "docker run --detach --cap-add=NET_ADMIN --cap-add=SYS_ADMIN --device /dev/net/tun -p 5900:5900 -p 1080:1080 -p 5901:5901 --name ${CONTAINER_NAME} --rm anyconnect-client"
+}
+
+function tear_down {
+  CONTAINER_NAME=anyconnect-client
+  if [ -v CONNECTION_NAME ]; then
+    CONTAINER_NAME+="-${CONNECTION_NAME}"
+  fi
+  
+  su -c "docker stop ${CONTAINER_NAME}"
+}
+
+VPN_SUBNETS=()
+
+while getopts :hn:d options; do
+  case ${options} in
+    h)
+      usage
+      ;;
+    n)
+      CONNECTION_NAME="${OPTARG}"
+      ;;
+    d)
+      TEAR_DOWN=true
+      ;;
+    :)
+      usage
+      ;;
+    ?)
+      usage
+      ;;
+  esac
+done
+
+if [ -v TEAR_DOWN ]; then
+  tear_down
+  exit
+fi
+
+launch

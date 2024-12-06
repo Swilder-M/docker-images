@@ -13,7 +13,7 @@ jobs:
         repository: dmikushin/globalprotect-docker
         submodules: recursive
 
-    - name: Set up QEMU # 这一步用于确保可以在不同架构间进行交叉编译
+    - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
 
     - name: Set up Docker Buildx
