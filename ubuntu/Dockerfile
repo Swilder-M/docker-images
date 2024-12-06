@@ -1,28 +1,37 @@
-FROM ubuntu:24.04
+FROM ubuntu:rolling
+EXPOSE 3389/tcp 18182/tcp 18182/udp 22/tcp
+ARG USER=ubuntu
+ARG PASS=ubuntu
+ARG X11Forwarding=false
 
-# 环境变量设置，用于不询问的情况下安装软件包
-ENV DEBIAN_FRONTEND=noninteractive
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+        apt-get install -y ubuntu-desktop-minimal dbus-x11 xrdp sudo; \
+    [ $X11Forwarding = 'true' ] && apt-get install -y openssh-server; \
+    apt-get autoremove --purge; \
+    apt-get clean; \
+    rm /run/reboot-required*
+RUN useradd -s /bin/bash -m $USER -p $(openssl passwd "$PASS"); \
+    usermod -aG sudo $USER; \
+    adduser xrdp ssl-cert; \
+    # Setting the required environment variables
+    echo 'LANG=en_US.UTF-8' >> /etc/default/locale; \
+    echo 'export GNOME_SHELL_SESSION_MODE=ubuntu' > /home/$USER/.xsessionrc; \
+    echo 'export XDG_CURRENT_DESKTOP=ubuntu:GNOME' >> /home/$USER/.xsessionrc; \
+    echo 'export XDG_SESSION_TYPE=x11' >> /home/$USER/.xsessionrc; \
+    # Enabling log to the stdout
+    sed -i "s/#EnableConsole=false/EnableConsole=true/g" /etc/xrdp/xrdp.ini; \
+    # Disabling system animations and reducing the
+    # image quality to improve the performance
+    sed -i 's/max_bpp=32/max_bpp=16/g' /etc/xrdp/xrdp.ini; \
+    gsettings set org.gnome.desktop.interface enable-animations true; \
+    # Listening on wildcard address for X forwarding
+    [ $X11Forwarding = 'true' ] && \
+        sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/g' /etc/ssh/sshd_config || \
+        :;
 
-# 更新并安装必要的软件包
-RUN apt-get update && apt-get install -y \
-    xubuntu-core^ \
-    xrdp \
-    dbus-x11 \
-    systemd \
-    sudo \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# 启用 systemd 初始化
-ENV container docker
-
-STOPSIGNAL SIGRTMIN+3
-
-# 启动 xrdp 服务
-RUN service xrdp start
-
-# 开启 systemd 服务
-CMD ["/lib/systemd/systemd"]
-
-# 开放 3389 端口用于 xrdp 和 18123 端口用于其他用途
-EXPOSE 3389 18123
+CMD rm -f /var/run/xrdp/xrdp*.pid >/dev/null 2>&1; \
+    service dbus restart >/dev/null 2>&1; \
+    /usr/lib/systemd/systemd-logind >/dev/null 2>&1 & \
+    [ -f /usr/sbin/sshd ] && /usr/sbin/sshd; \
+    xrdp-sesman --config /etc/xrdp/sesman.ini; \
+    xrdp --nodaemon --config /etc/xrdp/xrdp.ini
