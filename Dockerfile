@@ -2,8 +2,8 @@ FROM debian:latest
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN echo "deb http://gb.archive.ubuntu.com/ubuntu jammy main" \
-    >> /etc/apt/sources.list
+RUN apt-get update && echo "deb http://gb.archive.ubuntu.com/ubuntu jammy main" \
+    >> /etc/apt/sources.list && apt-get install -y gnupg2 && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 871920D1991BC93C
 
 RUN apt-get update && apt-get install -y libxml2 libgio-cil kmod libgtk-3-0 x11vnc xvfb net-tools libwebkit2gtk-4.0-dev blackbox bbrun iproute2 iptables busybox-syslogd novnc dante-server inetutils-ping && apt-get clean
 
