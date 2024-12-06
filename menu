@@ -1,5 +1,5 @@
 [begin] (Containerised Cisco AnyConnect)
-	[exec] (Cisco AnyConnect Client) {/opt/cisco/anyconnect/bin/vpnui}
+	[exec] (Cisco AnyConnect Client) {/opt/cisco/secureclient/bin/vpnui}
 	[exec] (xterm) {xterm -ls}
 	[nop] ()
 	[workspaces] (workspace list)
