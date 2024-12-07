@@ -1,11 +1,17 @@
 FROM --platform=$BUILDPLATFORM busybox AS copy-stage
 ARG TARGETPLATFORM
 
+WORKDIR /build
+
+COPY xray-amd64 ./
+COPY xray-arm64 ./
+COPY entrypoint.sh ./
+
 RUN mkdir -p /build-output
 
 RUN case "$TARGETPLATFORM" in \
-        "linux/amd64") cp ./xray-amd64 /build-output/xray ;; \
-        "linux/arm64") cp ./xray-arm64 /build-output/xray ;; \
+        "linux/amd64") cp xray-amd64 /build-output/xray ;; \
+        "linux/arm64") cp xray-arm64 /build-output/xray ;; \
         *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
     esac
 COPY entrypoint.sh /build-output/entrypoint.sh
