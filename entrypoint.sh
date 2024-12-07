@@ -1,10 +1,9 @@
 #!/bin/sh
 
-# 启动 Xray 服务
-xray -c /etc/xray/config.json &
+snell-server -c /etc/snell-server.conf >> /var/log/snell.log 2>&1 &
 
 if [ $? -ne 0 ]; then
-    echo "Failed to start Xray service."
+    echo "Failed to start Snell service."
     exit 1
 fi
 

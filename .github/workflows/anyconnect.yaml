@@ -12,15 +12,15 @@ jobs:
     
     - name: Download Xray
       run: |
-        wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
-        unzip -o Xray-linux-64.zip
-        mv xray xray-amd64
+        wget https://dl.nssurge.com/snell/snell-server-v4.1.1-linux-amd64.zip
+        unzip -o snell-server-v4.1.1-linux-amd64.zip
+        mv snell-server snell-server-amd64
 
-        wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
-        unzip -o Xray-linux-arm64-v8a.zip
-        mv xray xray-arm64
+        wget https://dl.nssurge.com/snell/snell-server-v4.1.1-linux-aarch64.zip
+        unzip -o snell-server-v4.1.1-linux-aarch64.zip
+        mv snell-server snell-server-arm64
 
-        chmod +x xray-amd64 xray-arm64
+        chmod +x snell-server-amd64 snell-server-arm64
         ls -al .
 
     - name: Set up QEMU

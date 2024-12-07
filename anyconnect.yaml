@@ -3,22 +3,21 @@ services:
     image: codming/anyconnect:latest
     restart: unless-stopped
     volumes:
-      - ./xray.json:/etc/xray/config.json
+      - ./snell.conf:/etc/snell-server.conf
+      - ./log:/var/log
     devices:
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
     ports:
-      - 18100:18100
-      - 18102:18102
+      - 18100:18100/tcp
+      - 18100:18100/udp
     networks:
       - anyconnect
     environment:
-      - USER_AGENT=AnyConnect Linux_64 4.7.00136
-      - VERSION=4.7.00136
-      - SERVER_CERT=YOUR_SERVER_CERT
+      - SERVER_CERT=YOUR_SERVER
       - COOKIE=YOUR_COOKIE
-      - SERVER_URL=https://vpn.example.com/
+      - SERVER_URL=https://vpn.exampe.com/
 
 networks:
   anyconnect:
