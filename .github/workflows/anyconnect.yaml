@@ -22,6 +22,7 @@ jobs:
         mv xray xray-arm64
 
         chmod +x xray-amd64 xray-arm64
+        ls -al .
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
