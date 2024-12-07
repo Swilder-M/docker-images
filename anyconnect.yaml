@@ -4,8 +4,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./xray.json:/etc/xray/config.json
-    # devices:
-    #   - /dev/net/tun
+    devices:
+      - /dev/net/tun
     cap_add:
       - NET_ADMIN
     ports:
@@ -14,12 +14,12 @@ services:
     networks:
       - anyconnect
     environment:
-      - USER_AGENT="AnyConnect Linux_64 4.7.00136"
-      - VERSION="4.7.00136"
-      - SERVER_CERT=""
-      - COOKIE=""
-      - SERVER_URL=""
- 
+      - USER_AGENT=AnyConnect Linux_64 4.7.00136
+      - VERSION=4.7.00136
+      - SERVER_CERT=YOUR_SERVER_CERT
+      - COOKIE=YOUR_COOKIE
+      - SERVER_URL=https://vpn.example.com/
+
 networks:
   anyconnect:
     external: false
