@@ -4,11 +4,11 @@ ARG TARGETPLATFORM
 RUN mkdir -p /build-output
 
 RUN case "$TARGETPLATFORM" in \
-        "linux/amd64") cp ./anyconnect/xray-amd64 /build-output/xray ;; \
-        "linux/arm64") cp ./anyconnect/xray-arm64 /build-output/xray ;; \
+        "linux/amd64") cp xray-amd64 /build-output/xray ;; \
+        "linux/arm64") cp xray-arm64 /build-output/xray ;; \
         *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
     esac
-RUN cp ./anyconnect/entrypoint.sh /build-output/entrypoint.sh
+RUN cp entrypoint.sh /build-output/entrypoint.sh
 
 FROM alpine:latest AS final-stage
 

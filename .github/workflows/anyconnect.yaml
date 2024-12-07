@@ -12,7 +12,6 @@ jobs:
     
     - name: Download Xray
       run: |
-        cd anyconnect
         wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
         unzip -o Xray-linux-64.zip
         mv xray xray-amd64
@@ -40,7 +39,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: anyconnect/Dockerfile
+        file: Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: codming/anyconnect:latest
