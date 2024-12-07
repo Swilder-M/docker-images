@@ -8,7 +8,7 @@ RUN case "$TARGETPLATFORM" in \
         "linux/arm64") cp xray-arm64 /build-output/xray ;; \
         *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
     esac
-cp entrypoint.sh /build-output/entrypoint.sh
+RUN cp entrypoint.sh /build-output/entrypoint.sh
 
 FROM alpine:latest AS final-stage
 
