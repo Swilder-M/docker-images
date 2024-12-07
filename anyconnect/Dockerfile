@@ -1,11 +1,25 @@
-FROM alpine:latest
+FROM --platform=$BUILDPLATFORM busybox AS copy-stage
+ARG TARGETPLATFORM
 
-# 更新软件包列表并安装必要的软件包
+RUN mkdir -p /build-output
+
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") cp anyconnect/xray-amd64 /build-output/xray ;; \
+        "linux/arm64") cp anyconnect/xray-arm64 /build-output/xray ;; \
+        *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac
+
+FROM alpine:latest AS final-stage
+
+COPY --from=copy-stage /build-output/xray /usr/bin/xray
 RUN apk update && \
     apk add --no-cache \
     openconnect \
     iptables \
-    bash \
-    && rm -rf /var/cache/apk/*
+    iproute2 \
+    bash
 
-ENTRYPOINT ["openconnect"]
+COPY anyconnect/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chmod +x /usr/bin/xray
+
+ENTRYPOINT ["/entrypoint.sh"]
