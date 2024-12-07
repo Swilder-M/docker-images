@@ -6,6 +6,6 @@ RUN apk update && \
     openconnect \
     iptables \
     bash \
-    && apk clean && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/*
 
 ENTRYPOINT ["/usr/sbin/openconnect"]
