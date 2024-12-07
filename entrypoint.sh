@@ -9,8 +9,9 @@ if [ $? -ne 0 ]; then
 fi
 
 # 使用传入的环境变量启动 OpenConnect
-openconnect --useragent "$USER_AGENT" \
-               --version-string "$VERSION" \
-               --servercert "$SERVER_CERT" \
-               --cookie "$COOKIE" \
-               $SERVER_URL
+openconnect -v \
+  --useragent "AnyConnect Linux_64 4.7.00136" \
+  --version-string "4.7.00136" \
+  --servercert "$SERVER_CERT" \
+  --cookie "$COOKIE" \
+  $SERVER_URL
