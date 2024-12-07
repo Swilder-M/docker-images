@@ -1,0 +1,26 @@
+services:
+  anyconnect:
+    image: codming/anyconnect:latest
+    restart: unless-stopped
+    volumes:
+      - ./xray.json:/etc/xray/config.json
+    # devices:
+    #   - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 18100:18100
+      - 18102:18102
+    networks:
+      - anyconnect
+    environment:
+      - USER_AGENT="AnyConnect Linux_64 4.7.00136"
+      - VERSION="4.7.00136"
+      - SERVER_CERT=""
+      - COOKIE=""
+      - SERVER_URL=""
+ 
+networks:
+  anyconnect:
+    external: false
+    name: anyconnect

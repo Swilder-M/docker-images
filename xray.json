@@ -1,0 +1,98 @@
+{
+	"log": {
+		"access": "/dev/null",
+		"error": "/dev/null",
+		"loglevel": "warning"
+	},
+	"inbounds": [
+		{
+			"port": 18100,
+			"listen": "127.0.0.1",
+			"protocol": "vmess",
+			"settings": {
+				"clients": [
+					{
+						"id": "3a5a451c-145d-42ec-a57c-a6f379b1af05",
+						"alterId": 0
+					}
+				]
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/vmess"
+				}
+			}
+		},
+		{
+			"port": 18101,
+			"listen": "127.0.0.1",
+			"protocol": "vless",
+			"settings": {
+				"clients": [
+					{
+						"id": "3a5a451c-145d-42ec-a57c-a6f379b1af05"
+					}
+				],
+				"decryption": "none"
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/vless"
+				}
+			}
+		},
+		{
+			"port": 18102,
+			"listen": "127.0.0.1",
+			"protocol": "trojan",
+			"settings": {
+				"clients": [
+					{
+						"password": "3a5a451c-145d-42ec-a57c-a6f379b1af05"
+					}
+				],
+				"decryption": "none"
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/trojan"
+				}
+			}
+		},
+		{
+			"port": 18103,
+			"listen": "127.0.0.1",
+			"protocol": "shadowsocks",
+			"settings": {
+				"clients": [
+					{
+						"method": "chacha20-ietf-poly1305",
+						"password": "3a5a451c-145d-42ec-a57c-a6f379b1af05"
+					}
+				],
+				"decryption": "none"
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/shadowsocks"
+				}
+			}
+		}
+	],
+	"outbounds": [
+		{
+			"protocol": "freedom",
+			"settings": {}
+		}
+	],
+	"dns": {
+		"server": [
+			"8.8.8.8",
+			"8.8.4.4"
+		]
+	}
+}
