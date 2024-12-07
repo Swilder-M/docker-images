@@ -9,6 +9,8 @@ fi
 
 # 使用传入的环境变量启动 OpenConnect
 openconnect -v \
+  --timestamp \
+  --force-dpd=10 \
   --useragent "AnyConnect Linux_64 4.7.00136" \
   --version-string "4.7.00136" \
   --servercert "$SERVER_CERT" \
