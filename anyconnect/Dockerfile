@@ -5,7 +5,7 @@ RUN mkdir -p /build-output
 
 RUN case "$TARGETPLATFORM" in \
         "linux/amd64") cp ./xray-amd64 /build-output/xray ;; \
-        "linux/arm64") cp ./xray-amd64 /build-output/xray ;; \
+        "linux/arm64") cp ./xray-arm64 /build-output/xray ;; \
         *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
     esac
 RUN cp ./entrypoint.sh /build-output/entrypoint.sh
