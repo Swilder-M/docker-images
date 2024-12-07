@@ -8,4 +8,4 @@ RUN apk update && \
     bash \
     && rm -rf /var/cache/apk/*
 
-ENTRYPOINT ["/usr/sbin/openconnect"]
+ENTRYPOINT ["openconnect"]
