@@ -2,22 +2,29 @@ services:
   anyconnect:
     image: codming/anyconnect:latest
     restart: unless-stopped
-    volumes:
-      - ./snell.conf:/etc/snell-server.conf
-      - ./log:/var/log
     devices:
       - /dev/net/tun
     cap_add:
       - NET_ADMIN
+    networks:
+      - anyconnect
+    environment:
+      - SERVER_CERT=YOUR_SERVER_CERT
+      - COOKIE=YOUR_COOKIE
+      - SERVER_URL=https://vpn.example.com/
+    command: /run-openconnect.sh
+  snell: 
+    <<: *anyconnect
+    restart: unless-stopped
+    volumes:
+      - ./snell-server.conf:/etc/snell-server.conf
+      - ./log:/var/log
     ports:
       - 18100:18100/tcp
       - 18100:18100/udp
     networks:
       - anyconnect
-    environment:
-      - SERVER_CERT=YOUR_SERVER
-      - COOKIE=YOUR_COOKIE
-      - SERVER_URL=https://vpn.exampe.com/
+    command: snell-server -c /etc/snell-server.conf
 
 networks:
   anyconnect:
