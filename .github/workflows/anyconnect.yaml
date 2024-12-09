@@ -12,6 +12,8 @@ jobs:
     
     - name: Download Files
       run: |
+        mv anyconnect/* .
+
         wget -nv https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
         unzip -o Xray-linux-64.zip
         mv xray xray-amd64
