@@ -3,3 +3,5 @@ xray.json
 nginx.conf
 .DS_Store
 log/
+anyconnect/log/
+globalprotect/log/

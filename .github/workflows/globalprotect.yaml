@@ -1,0 +1,49 @@
+name: Build and Publish GlobalProtect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Download Files
+      run: |
+        mv globalprotect/* .
+
+        wget -nv https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+        unzip -o Xray-linux-64.zip
+        mv xray xray-amd64
+
+        wget -nv https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
+        unzip -o Xray-linux-arm64-v8a.zip
+        mv xray xray-arm64
+
+        curl -s -o vpnc-script https://gitlab.com/openconnect/vpnc-scripts/raw/master/vpnc-script
+
+        chmod +x xray-amd64 xray-arm64 vpnc-script
+        ls -al .
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: codming/globalprotect:latest
