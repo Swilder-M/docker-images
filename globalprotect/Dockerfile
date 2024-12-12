@@ -35,4 +35,4 @@ RUN apk update && \
 RUN chmod +x /run.sh && chmod +x /usr/bin/xray && chmod 755 /etc/vpnc/vpnc-script
 
 HEALTHCHECK --interval=3m --timeout=5s \
-  CMD curl -sSL ip.sb -x http://127.0.0.1:12345 || exit 1
+  CMD curl -sSL ip.sb --interface tun0 || exit 1
