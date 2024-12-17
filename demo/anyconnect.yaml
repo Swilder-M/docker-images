@@ -1,0 +1,17 @@
+services:
+  anyconnect:
+    image: codming/anyconnect:latest
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 1080-1082:1080-1082/tcp
+      - 1080-1082:1080-1082/udp
+    volumes:
+      - ./xray.json:/etc/xray.json
+      - ./log:/var/log
+    environment:
+      - SERVER_CERT=YOUR_SERVER_CERT
+      - COOKIE=YOUR_COOKIE
+      - SERVER_URL=https://vpn.example.com/
+    command: /run.sh

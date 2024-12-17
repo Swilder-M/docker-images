@@ -9,4 +9,4 @@ openconnect -v \
   --version-string "4.7.00136" \
   --servercert "$SERVER_CERT" \
   --cookie "$COOKIE" \
-  $SERVER_URL
+  $SERVER_URL -vvv

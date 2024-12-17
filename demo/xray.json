@@ -1,0 +1,50 @@
+{
+	"log": {
+		"access": "/dev/null",
+		"error": "/dev/null",
+		"loglevel": "warning"
+	},
+	"inbounds": [{
+			"listen": "0.0.0.0",
+			"port": 1080,
+			"protocol": "http"
+		}, {
+			"port": 1081,
+			"listen": "0.0.0.0",
+			"protocol": "vmess",
+			"settings": {
+				"clients": [{
+					"id": "UUID",
+					"alterId": 0
+				}]
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/vmess"
+				}
+			}
+		},
+		{
+			"port": 1082,
+			"listen": "0.0.0.0",
+			"protocol": "trojan",
+			"settings": {
+				"clients": [{
+					"password": "UUID"
+				}],
+				"decryption": "none"
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"path": "/trojan"
+				}
+			}
+		}
+	],
+	"outbounds": [{
+		"protocol": "freedom",
+		"settings": {}
+	}]
+}

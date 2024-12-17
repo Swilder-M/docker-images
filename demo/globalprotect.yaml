@@ -1,0 +1,18 @@
+services:
+  globalprotect:
+    image: codming/globalprotect:latest
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 1080-1082:1080-1082/tcp
+      - 1080-1082:1080-1082/udp
+    volumes:
+      - ./xray.json:/etc/xray.json
+      - ./log:/var/log
+    environment:
+      - COOKIE=YOUR_COOKIE
+      - USERNAME=YOUR_USERNAME
+      - SERVER_URL=vpn.example.com
+      - HIP_CHECK=1
+    command: /run.sh
