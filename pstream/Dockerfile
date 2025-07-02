@@ -42,7 +42,7 @@ RUN ./configure \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --with-http_ssl_module \
     --with-threads \
-    --add-module=/opt/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}
+    --add-module=/opt/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION} \
     --with-cc-opt='-Os -fomit-frame-pointer -static' \
     --with-ld-opt='-static' \
     --user=nginx \
