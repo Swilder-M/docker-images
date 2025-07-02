@@ -39,40 +39,35 @@ RUN ./configure \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --with-http_ssl_module \
     --add-module=/opt/nginx-rtmp-module \
-    --with-cc-opt='-Os -fomit-frame-pointer -ffunction-sections -fdata-sections -static' \
-    --with-ld-opt='-static -Wl,--gc-sections' \
+    --with-cc-opt='-Os -fomit-frame-pointer -static' \
+    --with-ld-opt='-static' \
     --user=nginx \
     --group=nginx
 
 RUN make -j$(nproc) && make install && \
-    strip -s /usr/local/nginx/sbin/nginx
+    strip /usr/local/nginx/sbin/nginx
 
-# Create minimal mime.types file with only essential types
-RUN awk 'BEGIN{p=0} /^types/,/^}/{p=1} p' /opt/nginx-*/conf/mime.types | grep -v "#" > /tmp/minimal_mime.types
+FROM alpine:3.22.0
 
-# Create directories required for nginx
+RUN addgroup -S nginx && \
+    adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+
 RUN mkdir -p /var/cache/nginx/client_temp \
              /var/cache/nginx/proxy_temp \
              /var/cache/nginx/fastcgi_temp \
              /var/cache/nginx/uwsgi_temp \
              /var/cache/nginx/scgi_temp \
-             /var/www/localhost/htdocs
+             /var/www/localhost/htdocs && \
+    chown -R nginx:nginx /var/cache/nginx /var/www/localhost/htdocs
 
-# Copy stat.xsl for RTMP stats
-RUN cp /opt/nginx-rtmp-module/stat.xsl /var/www/localhost/htdocs/stat.xsl
+COPY --from=builder /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx
+COPY --from=builder /opt/nginx-rtmp-module/stat.xsl /var/www/localhost/htdocs/stat.xsl
+COPY --from=builder /opt/nginx-*/conf/mime.types /etc/nginx/mime.types
 
-FROM scratch
-
-# Copy files from builder
-COPY --from=builder /usr/local/nginx/sbin/nginx /usr/sbin/nginx
-COPY --from=builder /var/www/localhost/htdocs/stat.xsl /var/www/localhost/htdocs/stat.xsl
-COPY --from=builder /tmp/minimal_mime.types /etc/nginx/mime.types
-COPY --from=builder /var/cache /var/cache
-COPY --from=builder /var/www /var/www
-COPY --from=builder /tmp /tmp
+RUN ln -sf /usr/local/nginx/sbin/nginx /usr/sbin/nginx
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80 1935
 
-CMD ["/usr/sbin/nginx"]
+CMD ["nginx"]
