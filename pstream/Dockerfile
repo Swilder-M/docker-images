@@ -90,4 +90,4 @@ EXPOSE 80 1935
 USER nginx
 
 # 启动命令
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx"]
