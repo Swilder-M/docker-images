@@ -58,8 +58,7 @@ RUN mkdir -p /var/cache/nginx/client_temp \
              /var/cache/nginx/fastcgi_temp \
              /var/cache/nginx/uwsgi_temp \
              /var/cache/nginx/scgi_temp \
-             /var/www/localhost/htdocs && \
-    chown -R nginx:nginx /var/cache/nginx /var/www/localhost/htdocs
+             /var/www/localhost/htdocs
 
 COPY --from=builder /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx
 COPY --from=builder /opt/nginx-*/conf/mime.types /etc/nginx/mime.types
