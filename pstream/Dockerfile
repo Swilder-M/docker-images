@@ -54,8 +54,8 @@ RUN make -j$(nproc) && make install && \
 FROM alpine:3.22.0
 
 # 创建nginx用户（静态编译的nginx无需运行时依赖）
-RUN addgroup -g 82 -S nginx && \
-    adduser -u 82 -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+RUN addgroup -S nginx && \
+    adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 # 创建必要的目录
 RUN mkdir -p /var/cache/nginx/client_temp \
