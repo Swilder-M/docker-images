@@ -8,6 +8,13 @@
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+        <style>
+            .truncate {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        </style>
     </head>
     <body class="bg-gray-50">
         <nav class="bg-white border-b border-indigo-100 shadow-sm">
@@ -149,69 +156,88 @@
                         <!-- Live Streams -->
                         <xsl:if test="count(live/stream) > 0">
                             <div class="overflow-x-auto">
-                                <table class="w-full">
+                                <table class="w-full table-fixed">
                                     <thead class="bg-indigo-100">
                                         <tr>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium flex items-center">
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium flex items-center w-48">
                                                 <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                                                 </svg>
                                                 Stream Name
                                             </th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Type</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Clients</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Time</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Bitrate</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Resolution</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Frame Rate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-24">Time</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-32">Total Bitrate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-32">Video Bitrate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-32">Audio Bitrate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-32">Resolution</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-24">Frame Rate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium w-44">Codec Info</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <xsl:for-each select="live/stream">
                                             <tr class="hover:bg-indigo-50 border-t">
-                                                <td class="px-4 py-2 text-indigo-700">
-                                                    <div class="cursor-pointer hover:text-indigo-900" 
-                                                         onclick="copyRtmpUrl('{/rtmp/server/application/name}', '{name}', this)">
+                                                <td class="px-4 py-2 text-indigo-700 w-48">
+                                                    <div class="cursor-pointer hover:text-indigo-900 truncate" 
+                                                         onclick="copyRtmpUrl('{/rtmp/server/application/name}', '{name}', this)"
+                                                         title="{name}">
                                                         <xsl:value-of select="name"/>
                                                     </div>
                                                 </td>
-                                                <td class="px-4 py-2">
-                                                    <span class="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
-                                                        <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
-                                                        </svg>
-                                                        Live
-                                                    </span>
-                                                </td>
-                                                <td class="px-4 py-2"><xsl:value-of select="nclients"/></td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2 w-24">
                                                     <xsl:call-template name="format-time">
-                                                        <xsl:with-param name="seconds" select="time"/>
+                                                        <xsl:with-param name="seconds" select="time div 1000"/>
                                                     </xsl:call-template>
                                                 </td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2 w-32">
                                                     <xsl:if test="bw_in">
                                                         <xsl:call-template name="format-bytes">
                                                             <xsl:with-param name="bytes" select="bw_in"/>
                                                         </xsl:call-template>/s
                                                     </xsl:if>
                                                 </td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2 w-32">
+                                                    <xsl:if test="bw_video">
+                                                        <xsl:call-template name="format-bytes">
+                                                            <xsl:with-param name="bytes" select="bw_video"/>
+                                                        </xsl:call-template>/s
+                                                    </xsl:if>
+                                                </td>
+                                                <td class="px-4 py-2 w-32">
+                                                    <xsl:if test="bw_audio">
+                                                        <xsl:call-template name="format-bytes">
+                                                            <xsl:with-param name="bytes" select="bw_audio"/>
+                                                        </xsl:call-template>/s
+                                                    </xsl:if>
+                                                </td>
+                                                <td class="px-4 py-2 w-32">
                                                     <xsl:if test="meta/video/width">
                                                         <xsl:value-of select="meta/video/width"/>x<xsl:value-of select="meta/video/height"/>
                                                     </xsl:if>
                                                 </td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2 w-24">
                                                     <xsl:if test="meta/video/frame_rate">
                                                         <xsl:value-of select="meta/video/frame_rate"/> fps
                                                     </xsl:if>
+                                                </td>
+                                                <td class="px-4 py-2 w-44">
+                                                    <div class="text-sm">
+                                                        <xsl:if test="meta/video/codec">
+                                                            <div>Video: <xsl:value-of select="meta/video/codec"/></div>
+                                                        </xsl:if>
+                                                        <xsl:if test="meta/audio/codec">
+                                                            <div>Audio: <xsl:value-of select="meta/audio/codec"/>
+                                                                <xsl:if test="meta/audio/sample_rate"> <xsl:value-of select="meta/audio/sample_rate"/>Hz</xsl:if>
+                                                            </div>
+                                                        </xsl:if>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             
                                             <!-- Clients for this stream -->
                                             <xsl:if test="count(client) > 0">
                                                 <tr>
-                                                    <td colspan="7" class="p-0">
+                                                    <td colspan="8" class="p-0">
                                                         <div class="bg-indigo-50 p-3">
                                                             <h6 class="mb-2 flex items-center text-indigo-700">
                                                                 <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,33 +246,25 @@
                                                                 Connected Clients:
                                                             </h6>
                                                             <div class="overflow-x-auto">
-                                                                <table class="w-full border rounded-lg overflow-hidden">
+                                                                <table class="w-full table-fixed border rounded-lg overflow-hidden">
                                                                     <thead class="bg-indigo-100">
                                                                         <tr>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">ID</th>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">Address</th>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">Time</th>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">Flash Version</th>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">Page URL</th>
-                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800">Type</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-32">Type</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-16">ID</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-36">Address</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-24">Time</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-20">Dropped</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-20">A/V Sync</th>
+                                                                            <th class="px-3 py-2 text-left text-sm text-indigo-800 w-32">Flash Version</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
                                                                         <xsl:for-each select="client">
                                                                             <tr class="border-t hover:bg-indigo-50">
-                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="id"/></td>
-                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="address"/></td>
-                                                                                <td class="px-3 py-2 text-sm">
-                                                                                    <xsl:call-template name="format-time">
-                                                                                        <xsl:with-param name="seconds" select="time"/>
-                                                                                    </xsl:call-template>
-                                                                                </td>
-                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="flashver"/></td>
-                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="pageurl"/></td>
-                                                                                <td class="px-3 py-2 text-sm">
+                                                                                <td class="px-3 py-2 text-sm w-32">
                                                                                     <xsl:choose>
                                                                                         <xsl:when test="publishing">
-                                                                                            <span class="bg-red-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
+                                                                                            <span class="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
                                                                                                 <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                                                                 </svg>
@@ -254,7 +272,7 @@
                                                                                             </span>
                                                                                         </xsl:when>
                                                                                         <xsl:otherwise>
-                                                                                            <span class="bg-indigo-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
+                                                                                            <span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
                                                                                                 <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -263,6 +281,34 @@
                                                                                             </span>
                                                                                         </xsl:otherwise>
                                                                                     </xsl:choose>
+                                                                                </td>
+                                                                                <td class="px-3 py-2 text-sm w-16"><xsl:value-of select="id"/></td>
+                                                                                <td class="px-3 py-2 text-sm w-36"><xsl:value-of select="address"/></td>
+                                                                                <td class="px-3 py-2 text-sm w-24">
+                                                                                    <xsl:call-template name="format-time">
+                                                                                        <xsl:with-param name="seconds" select="time div 1000"/>
+                                                                                    </xsl:call-template>
+                                                                                </td>
+                                                                                <td class="px-3 py-2 text-sm w-20">
+                                                                                    <xsl:choose>
+                                                                                        <xsl:when test="dropped">
+                                                                                            <span class="text-red-600"><xsl:value-of select="dropped"/></span>
+                                                                                        </xsl:when>
+                                                                                        <xsl:otherwise>-</xsl:otherwise>
+                                                                                    </xsl:choose>
+                                                                                </td>
+                                                                                <td class="px-3 py-2 text-sm w-20">
+                                                                                    <xsl:choose>
+                                                                                        <xsl:when test="avsync">
+                                                                                            <xsl:value-of select="avsync"/>ms
+                                                                                        </xsl:when>
+                                                                                        <xsl:otherwise>-</xsl:otherwise>
+                                                                                    </xsl:choose>
+                                                                                </td>
+                                                                                <td class="px-3 py-2 text-sm w-32">
+                                                                                    <div class="truncate" title="{flashver}">
+                                                                                        <xsl:value-of select="flashver"/>
+                                                                                    </div>
                                                                                 </td>
                                                                             </tr>
                                                                         </xsl:for-each>
@@ -377,7 +423,7 @@
     </xsl:if>
     <xsl:if test="$days = 0">
         <xsl:if test="$hours &gt; 0 or $minutes &gt; 0"><xsl:text> </xsl:text></xsl:if>
-        <xsl:value-of select="$secs"/>s
+        <xsl:value-of select="floor($secs)"/>s
     </xsl:if>
 </xsl:template>
 

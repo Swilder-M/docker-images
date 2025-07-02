@@ -38,7 +38,7 @@ jobs:
     - name: Test image
       run: |
         echo "Starting container for testing..."
-        docker run -d --name test-pstream -p 8080:80 -p 1935:1935 codming/pstream:latest
+        docker run -d --name test-pstream -p 8080:8080 -p 1935:1935 codming/pstream:latest
         sleep 5
         echo "Checking if nginx is running properly..."
         docker ps | grep test-pstream
