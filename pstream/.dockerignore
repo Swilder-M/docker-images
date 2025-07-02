@@ -1,0 +1,31 @@
+# Git相关
+.git
+.gitignore
+
+# 构建脚本（如果有的话）
+build*.sh
+
+# 文档
+README.md
+*.md
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE相关
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker相关
+docker-compose.yml
+docker-compose.yaml
+.dockerignore 
