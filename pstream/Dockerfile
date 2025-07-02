@@ -72,6 +72,4 @@ RUN nginx -t
 
 EXPOSE 80 1935
 
-USER nginx
-
 CMD ["nginx"]
