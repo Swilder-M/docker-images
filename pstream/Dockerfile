@@ -1,5 +1,6 @@
 ARG ALPINE_VERSION=3.14
 
+### Builder stage ###
 FROM alpine:${ALPINE_VERSION} as builder
 
 ARG NGINX_VERSION=1.21.1
@@ -41,8 +42,9 @@ RUN cd /tmp/build/nginx-${NGINX_VERSION} && \
     make CFLAGS=-Wno-error -j $(getconf _NPROCESSORS_ONLN) && \
     make install
 
-RUN cp stat.xsl /usr/local/nginx/html/stat.xsl
+COPY stat.xsl /usr/local/nginx/html/stat.xsl
 
+### Runtime stage ###
 FROM alpine:${ALPINE_VERSION}
 
 RUN apk update	&& \
