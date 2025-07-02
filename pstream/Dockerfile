@@ -6,33 +6,49 @@ FROM alpine:${ALPINE_VERSION} as builder
 ARG NGINX_VERSION=1.21.1
 ARG NGINX_RTMP_MODULE_VERSION=1.2.2
 
-RUN apk update	&& \
-	apk --no-cache add \
-		bash build-base ca-certificates \
-		openssl openssl-dev make \
-		gcc libgcc libc-dev rtmpdump-dev \
-		zlib-dev musl-dev pcre pcre-dev lame-dev \
-		yasm pkgconf pkgconfig libtheora-dev \
-		libvorbis-dev libvpx-dev freetype-dev && \
+RUN apk update && \
+    apk --no-cache add \
+        bash \
+        build-base \
+        ca-certificates \
+        openssl \
+        openssl-dev \
+        make \
+        gcc \
+        libgcc \
+        libc-dev \
+        rtmpdump-dev \
+        zlib-dev \
+        musl-dev \
+        pcre \
+        pcre-dev \
+        lame-dev \
+        yasm \
+        pkgconf \
+        pkgconfig \
+        libtheora-dev \
+        libvorbis-dev \
+        libvpx-dev \
+        freetype-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/build && \
-	cd /tmp/build && \
-	wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-	tar zxf nginx-${NGINX_VERSION}.tar.gz && \
-	rm nginx-${NGINX_VERSION}.tar.gz
+    cd /tmp/build && \
+    wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar zxf nginx-${NGINX_VERSION}.tar.gz && \
+    rm nginx-${NGINX_VERSION}.tar.gz
 
 RUN cd /tmp/build && \
     wget https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
     tar zxf v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
-	rm v${NGINX_RTMP_MODULE_VERSION}.tar.gz
+    rm v${NGINX_RTMP_MODULE_VERSION}.tar.gz
 
 RUN cd /tmp/build/nginx-${NGINX_VERSION} && \
     ./configure \
         --sbin-path=/usr/local/sbin/nginx \
         --conf-path=/etc/nginx/nginx.conf \
         --error-log-path=/var/log/nginx/error.log \
-        --http-log-path=/var/log/nginx/access.log \		
+        --http-log-path=/var/log/nginx/access.log \
         --pid-path=/var/run/nginx/nginx.pid \
         --lock-path=/var/lock/nginx.lock \
         --http-client-body-temp-path=/tmp/nginx-client-body \
@@ -47,8 +63,8 @@ COPY stat.xsl /usr/local/nginx/html/stat.xsl
 ### Runtime stage ###
 FROM alpine:${ALPINE_VERSION}
 
-RUN apk update	&& \
-	apk --no-cache add pcre && \
+RUN apk update && \
+    apk --no-cache add pcre && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local /usr/local
