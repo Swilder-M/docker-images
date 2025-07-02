@@ -16,12 +16,15 @@ RUN apk add --no-cache \
     wget
 
 ARG NGINX_VERSION=1.28.0
-ARG RTMP_MODULE_VERSION=master
+ARG NGINX_RTMP_MODULE_VERSION=1.2.2
 
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
-    tar zxf nginx-${NGINX_VERSION}.tar.gz
+    tar zxf nginx-${NGINX_VERSION}.tar.gz && \
+    rm nginx-${NGINX_VERSION}.tar.gz
 
-RUN git clone https://github.com/arut/nginx-rtmp-module.git --depth=1
+RUN wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
+    tar zxf v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
+    rm v${NGINX_RTMP_MODULE_VERSION}.tar.gz
 
 WORKDIR /opt/nginx-${NGINX_VERSION}
 RUN ./configure \
@@ -38,7 +41,8 @@ RUN ./configure \
     --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
     --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
     --with-http_ssl_module \
-    --add-module=/opt/nginx-rtmp-module \
+    --with-threads \
+    --add-module=/opt/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}
     --with-cc-opt='-Os -fomit-frame-pointer -static' \
     --with-ld-opt='-static' \
     --user=nginx \

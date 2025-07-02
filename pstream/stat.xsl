@@ -132,7 +132,7 @@
             <xsl:for-each select="/rtmp/server/application">
                 <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
                     <div class="bg-indigo-600 text-white px-4 py-2 flex justify-between items-center">
-                        <span class="flex items-center">
+                        <span class="flex items-center font-bold">
                             <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                             </svg>
@@ -152,19 +152,29 @@
                                 <table class="w-full">
                                     <thead class="bg-indigo-100">
                                         <tr>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Stream Name</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Type</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Clients</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Time</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Bitrate</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Resolution</th>
-                                            <th class="px-4 py-2 text-left text-indigo-800">Frame Rate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium flex items-center">
+                                                <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                                </svg>
+                                                Stream Name
+                                            </th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Type</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Clients</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Time</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Bitrate</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Resolution</th>
+                                            <th class="px-4 py-2 text-left text-indigo-800 font-medium">Frame Rate</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <xsl:for-each select="live/stream">
                                             <tr class="hover:bg-indigo-50 border-t">
-                                                <td class="px-4 py-2 font-bold text-indigo-700"><xsl:value-of select="name"/></td>
+                                                <td class="px-4 py-2 text-indigo-700">
+                                                    <div class="cursor-pointer hover:text-indigo-900" 
+                                                         onclick="copyRtmpUrl('{/rtmp/server/application/name}', '{name}', this)">
+                                                        <xsl:value-of select="name"/>
+                                                    </div>
+                                                </td>
                                                 <td class="px-4 py-2">
                                                     <span class="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
                                                         <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,7 +213,7 @@
                                                 <tr>
                                                     <td colspan="7" class="p-0">
                                                         <div class="bg-indigo-50 p-3">
-                                                            <h6 class="mb-2 font-bold flex items-center text-indigo-700">
+                                                            <h6 class="mb-2 flex items-center text-indigo-700">
                                                                 <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                                 </svg>
@@ -231,7 +241,7 @@
                                                                                         <xsl:with-param name="seconds" select="time"/>
                                                                                     </xsl:call-template>
                                                                                 </td>
-                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="flash_version"/></td>
+                                                                                <td class="px-3 py-2 text-sm"><xsl:value-of select="flashver"/></td>
                                                                                 <td class="px-3 py-2 text-sm"><xsl:value-of select="pageurl"/></td>
                                                                                 <td class="px-3 py-2 text-sm">
                                                                                     <xsl:choose>
@@ -282,7 +292,7 @@
             </xsl:for-each>
             
             <div class="text-center mt-4 text-gray-500 text-sm p-4">
-                Powered by nginx-rtmp-module • Page auto-refreshes every 30 seconds
+                Page auto-refreshes every 30 seconds
             </div>
         </div>
         
@@ -291,6 +301,31 @@
             setTimeout(function() {
                 window.location.reload();
             }, 30000);
+            
+            // Function to copy RTMP URL
+            function copyRtmpUrl(appName, streamName, element) {
+                const hostname = window.location.hostname;
+                const rtmpUrl = `rtmp://${hostname}:1935/${appName}/${streamName}`;
+                
+                // Create temporary input element
+                const tempInput = document.createElement('input');
+                tempInput.value = rtmpUrl;
+                document.body.appendChild(tempInput);
+                
+                // Select and copy
+                tempInput.select();
+                document.execCommand('copy');
+                
+                // Remove temporary element
+                document.body.removeChild(tempInput);
+                
+                // Visual feedback (brief highlight)
+                const originalColor = element.style.color;
+                element.style.color = '#4F46E5'; // Indigo-600
+                setTimeout(() => {
+                    element.style.color = originalColor;
+                }, 300);
+            }
         </script>
     </body>
     </html>
