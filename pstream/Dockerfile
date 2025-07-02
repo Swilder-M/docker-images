@@ -12,10 +12,9 @@ RUN apk add --no-cache \
     pcre-dev \
     pcre-static \
     pcre2-dev \
-    git \
     wget
 
-ARG NGINX_VERSION=1.28.0
+ARG NGINX_VERSION=1.20.0
 ARG NGINX_RTMP_MODULE_VERSION=1.2.2
 
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
@@ -53,8 +52,8 @@ RUN make -j$(nproc) && make install && \
 
 FROM alpine:3.22.0
 
-RUN addgroup -S nginx && \
-    adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+# RUN addgroup -S nginx && \
+#     adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 RUN mkdir -p /var/cache/nginx/client_temp \
              /var/cache/nginx/proxy_temp \
