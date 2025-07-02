@@ -61,12 +61,11 @@ RUN mkdir -p /var/cache/nginx/client_temp \
     chown -R nginx:nginx /var/cache/nginx /var/www/localhost/htdocs
 
 COPY --from=builder /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx
-COPY --from=builder /opt/nginx-rtmp-module/stat.xsl /var/www/localhost/htdocs/stat.xsl
 COPY --from=builder /opt/nginx-*/conf/mime.types /etc/nginx/mime.types
+COPY stat.xsl /var/www/localhost/htdocs/stat.xsl
+COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN ln -sf /usr/local/nginx/sbin/nginx /usr/sbin/nginx
-
-COPY nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80 1935
 
