@@ -11,6 +11,9 @@ RUN apk add --no-cache \
     openssl-libs-static \
     zlib-dev \
     zlib-static \
+    pcre-dev \
+    pcre-static \
+    pcre2-dev \
     git \
     wget
 
