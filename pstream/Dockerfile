@@ -1,7 +1,7 @@
 ARG ALPINE_VERSION=3.14
 
 ### Builder stage ###
-FROM alpine:${ALPINE_VERSION} as builder
+FROM alpine:${ALPINE_VERSION} AS builder
 
 ARG NGINX_VERSION=1.21.1
 ARG NGINX_RTMP_MODULE_VERSION=1.2.2
