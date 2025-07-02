@@ -26,6 +26,29 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USER }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+    - name: Build for testing
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: Dockerfile
+        platforms: linux/amd64
+        push: false
+        load: true
+        tags: codming/pstream:test
+
+    - name: Test image
+      run: |
+        echo "Starting container for testing..."
+        docker run -d --name test-pstream -p 8080:80 -p 1935:1935 codming/pstream:test
+        sleep 5
+        echo "Checking if nginx is running properly..."
+        docker ps | grep test-pstream
+        docker logs test-pstream
+        # Test if nginx responds on HTTP port
+        curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ | grep -q "200" && echo "✅ HTTP test passed" || { echo "❌ HTTP test failed"; exit 1; }
+        docker stop test-pstream
+        docker rm test-pstream
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
