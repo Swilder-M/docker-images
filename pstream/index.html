@@ -306,7 +306,11 @@
                                                                     </span>
                                                                 </td>
                                                                 <td class="px-3 py-2 text-sm" style="width: 70px; min-width: 70px;">{{ client.id }}</td>
-                                                                <td class="px-3 py-2 text-sm" style="width: 150px; min-width: 150px;">{{ client.address }}</td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 150px; min-width: 150px;">
+                                                                    <div class="truncate" :title="client.address">
+                                                                        {{ client.address }}
+                                                                    </div>
+                                                                </td>
                                                                 <td class="px-3 py-2 text-sm" style="width: 90px; min-width: 90px;">
                                                                     {{ formatTime(client.time / 1000) }}
                                                                 </td>
