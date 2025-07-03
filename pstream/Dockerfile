@@ -59,6 +59,7 @@ RUN cd /tmp/build/nginx-${NGINX_VERSION} && \
     make install
 
 COPY stat.xsl /usr/local/nginx/html/stat.xsl
+COPY index.html /usr/local/nginx/html/index.html
 
 ### Runtime stage ###
 FROM alpine:${ALPINE_VERSION}

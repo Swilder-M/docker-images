@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTMP Statistics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.js"></script>
+    <style>
+        .truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .fade-transition {
+            transition: all 0.3s ease;
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .copy-hint:hover::after {
+            content: 'Click to copy';
+            position: absolute;
+            background: #374151;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="bg-white border-b border-indigo-100 shadow-sm">
+            <div class="container mx-auto px-4 py-3 max-w-6xl flex justify-between items-center">
+                <a class="font-bold text-lg flex items-center text-indigo-700" href="#">
+                    <!-- Video Icon -->
+                    <svg class="h-6 w-6 mr-2 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span class="hidden sm:inline">RTMP Statistics Dashboard</span>
+                </a>
+                <div class="flex items-center space-x-3">
+                    <!-- Status Indicator -->
+                    <div class="flex items-center space-x-2">
+                        <div :class="{'bg-green-500': isOnline, 'bg-red-500': !isOnline}" class="w-2 h-2 rounded-full"></div>
+                        <span class="text-sm text-gray-600">
+                            {{ isOnline ? 'Connected' : 'Disconnected' }}
+                            <span v-if="!isOnline && retryCount > 0" class="text-xs text-orange-600">
+                                (Retry {{ retryCount }}/3)
+                            </span>
+                        </span>
+                        <svg v-if="isLoading" class="h-4 w-4 text-indigo-600 loading-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
+                    <a href="https://github.com/Swilder-M/docker-images/tree/master/pstream" target="_blank" class="flex items-center text-indigo-700 px-3 py-1 rounded text-sm transition duration-200 hover:text-indigo-900">
+                        <!-- GitHub Icon -->
+                        <svg class="h-5 w-5 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.237 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span class="hidden sm:inline ml-1">GitHub</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4 max-w-6xl">
+            <!-- Error Alert -->
+            <div v-if="!isOnline && errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 fade-transition">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-red-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                        <h4 class="text-red-800 font-semibold">Connection Error</h4>
+                        <p class="text-red-600 text-sm">{{ errorMessage }}</p>
+                        <p v-if="retryCount > 0" class="text-red-500 text-xs mt-1">
+                            Retrying... ({{ retryCount }}/3)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Overview -->
+            <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden fade-transition">
+                <div class="bg-indigo-600 text-white px-4 py-2 font-bold flex items-center">
+                    <!-- Server Icon -->
+                    <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                    </svg>
+                    Server Overview
+                </div>
+                <div class="p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="border border-indigo-400 rounded-lg p-4 text-center shadow-sm hover:shadow-md transition duration-200">
+                            <div class="flex items-center justify-center mb-2">
+                                <!-- Clock Icon -->
+                                <svg class="h-5 w-5 text-indigo-600 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h5 class="font-bold text-gray-700">Server Uptime</h5>
+                            </div>
+                            <p class="text-indigo-600 font-bold mt-2">{{ formatTime(rtmpData.uptime) }}</p>
+                        </div>
+                        <div class="border border-indigo-400 rounded-lg p-4 text-center shadow-sm hover:shadow-md transition duration-200">
+                            <div class="flex items-center justify-center mb-2">
+                                <!-- Users Icon -->
+                                <svg class="h-5 w-5 text-indigo-600 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <h5 class="font-bold text-gray-700">Total Accepted</h5>
+                            </div>
+                            <p class="text-indigo-600 font-bold mt-2">{{ rtmpData.naccepted || 0 }}</p>
+                        </div>
+                        <div class="border border-indigo-400 rounded-lg p-4 text-center shadow-sm hover:shadow-md transition duration-200">
+                            <div class="flex items-center justify-center mb-2">
+                                <!-- Arrow Down Icon -->
+                                <svg class="h-5 w-5 text-indigo-600 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                                <h5 class="font-bold text-gray-700">Bandwidth In</h5>
+                            </div>
+                            <p class="text-indigo-600 font-bold mt-2">{{ formatBytes(rtmpData.bw_in) }}/s</p>
+                        </div>
+                        <div class="border border-indigo-400 rounded-lg p-4 text-center shadow-sm hover:shadow-md transition duration-200">
+                            <div class="flex items-center justify-center mb-2">
+                                <!-- Arrow Up Icon -->
+                                <svg class="h-5 w-5 text-indigo-600 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                                <h5 class="font-bold text-gray-700">Bandwidth Out</h5>
+                            </div>
+                            <p class="text-indigo-600 font-bold mt-2">{{ formatBytes(rtmpData.bw_out) }}/s</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-indigo-50 p-4 rounded-lg shadow-sm">
+                            <h3 class="text-sm uppercase text-indigo-700 font-semibold mb-2 flex items-center">
+                                <!-- Info Icon -->
+                                <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Server Information
+                            </h3>
+                            <p class="leading-relaxed">
+                                <span class="font-semibold inline-block w-24">Version:</span> <span class="text-indigo-600 tracking-wide">nginx {{ rtmpData.nginx_version }} with nginx-rtmp-module {{ rtmpData.nginx_rtmp_version }}</span><br/>
+                                <span class="font-semibold inline-block w-24">Compiler:</span> <span class="text-indigo-600 tracking-wide">{{ rtmpData.compiler }}</span><br/>
+                                <span class="font-semibold inline-block w-24">Built:</span> <span class="text-indigo-600 tracking-wide">{{ rtmpData.built }}</span>
+                            </p>
+                        </div>
+                        <div class="bg-indigo-50 p-4 rounded-lg shadow-sm">
+                            <h3 class="text-sm uppercase text-indigo-700 font-semibold mb-2 flex items-center">
+                                <!-- Document Icon -->
+                                <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                </svg>
+                                Transfer Statistics
+                            </h3>
+                            <p class="leading-relaxed">
+                                <span class="font-semibold inline-block w-36">Total Bytes In:</span> <span class="text-indigo-600 tracking-wide">{{ formatBytes(rtmpData.bytes_in) }}</span><br/>
+                                <span class="font-semibold inline-block w-36">Total Bytes Out:</span> <span class="text-indigo-600 tracking-wide">{{ formatBytes(rtmpData.bytes_out) }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications -->
+            <div v-for="app in applications" :key="app.name" class="bg-white rounded-lg shadow-md mb-6 overflow-hidden fade-transition">
+                <div class="bg-indigo-600 text-white px-4 py-2 flex justify-between items-center">
+                    <span class="flex items-center font-bold">
+                        <!-- Grid Icon -->
+                        <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                        </svg>
+                        Application: {{ app.name }}
+                    </span>
+                    <span class="bg-indigo-500 text-white px-2 py-1 rounded flex items-center">
+                        <!-- Users Icon -->
+                        <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        {{ app.live.nclients }} clients
+                    </span>
+                </div>
+                <div>
+                    <!-- Live Streams -->
+                    <div v-if="app.live.streams && app.live.streams.length > 0" class="overflow-x-auto">
+                        <table style="min-width: 990px; table-layout: fixed; width: 100%;">
+                            <thead class="bg-indigo-100">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium flex items-center" style="width: 150px; min-width: 150px;">
+                                        <!-- Grid Icon -->
+                                        <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1z" />
+                                        </svg>
+                                        Stream
+                                    </th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 90px; min-width: 90px;">Time</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 130px; min-width: 130px;">Total Bitrate</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 130px; min-width: 130px;">Video Bitrate</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 130px; min-width: 130px;">Audio Bitrate</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 110px; min-width: 110px;">Resolution</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 90px; min-width: 90px;">Frame Rate</th>
+                                    <th class="px-4 py-2 text-left text-indigo-800 font-medium" style="width: 160px; min-width: 160px;">Codec Info</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template v-for="stream in app.live.streams" :key="stream.name">
+                                    <tr class="hover:bg-indigo-50 border-t">
+                                        <td class="px-4 py-2 text-indigo-700" style="width: 150px; min-width: 150px;">
+                                            <div class="cursor-pointer hover:text-indigo-900 hover:underline truncate transition-colors duration-200" 
+                                                 @click="copyRtmpUrl(app.name, stream.name, $event)"
+                                                 :title="`Click to copy RTMP URL: rtmp://${hostname}:1935/${app.name}/${stream.name}`">
+                                                {{ stream.name }}
+                                                <svg class="h-3 w-3 inline ml-1 opacity-60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 90px; min-width: 90px;">
+                                            {{ formatTime(stream.time / 1000) }}
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 130px; min-width: 130px;">
+                                            <span v-if="stream.bw_in">{{ formatBytes(stream.bw_in) }}/s</span>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 130px; min-width: 130px;">
+                                            <span v-if="stream.bw_video">{{ formatBytes(stream.bw_video) }}/s</span>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 130px; min-width: 130px;">
+                                            <span v-if="stream.bw_audio">{{ formatBytes(stream.bw_audio) }}/s</span>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 110px; min-width: 110px;">
+                                            <span v-if="stream.meta && stream.meta.video && stream.meta.video.width">
+                                                {{ stream.meta.video.width }}x{{ stream.meta.video.height }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 90px; min-width: 90px;">
+                                            <span v-if="stream.meta && stream.meta.video && stream.meta.video.frame_rate">
+                                                {{ stream.meta.video.frame_rate }} fps
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2" style="width: 160px; min-width: 160px;">
+                                            <div class="text-sm">
+                                                <div v-if="stream.meta && stream.meta.video && stream.meta.video.codec">
+                                                    Video: {{ stream.meta.video.codec }}
+                                                </div>
+                                                <div v-if="stream.meta && stream.meta.audio && stream.meta.audio.codec">
+                                                    Audio: {{ stream.meta.audio.codec }}
+                                                    <span v-if="stream.meta.audio.sample_rate"> {{ stream.meta.audio.sample_rate }}Hz</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Clients for this stream -->
+                                    <tr v-if="stream.clients && stream.clients.length > 0">
+                                        <td colspan="8" class="p-0">
+                                            <div class="bg-indigo-50 p-3">
+                                                <h6 class="mb-2 flex items-center text-indigo-700">
+                                                    <!-- Users Icon -->
+                                                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    Connected Clients:
+                                                </h6>
+                                                <div class="overflow-x-auto">
+                                                    <table class="border rounded-lg overflow-hidden" style="min-width: 750px; table-layout: fixed; width: 100%;">
+                                                        <thead class="bg-indigo-100">
+                                                            <tr>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 130px; min-width: 130px;">Type</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 70px; min-width: 70px;">ID</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 150px; min-width: 150px;">Address</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 90px; min-width: 90px;">Time</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 90px; min-width: 90px;">Dropped</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 90px; min-width: 90px;">A/V Sync</th>
+                                                                <th class="px-3 py-2 text-left text-sm text-indigo-800" style="width: 170px; min-width: 170px;">Flash Version</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr v-for="client in stream.clients" :key="client.id" class="border-t hover:bg-indigo-50">
+                                                                <td class="px-3 py-2 text-sm" style="width: 130px; min-width: 130px;">
+                                                                    <span v-if="client.publishing" class="bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
+                                                                        <!-- Upload Icon -->
+                                                                        <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                                                                        </svg>
+                                                                        Publishing
+                                                                    </span>
+                                                                    <span v-else class="bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center inline-flex">
+                                                                        <!-- Download Icon -->
+                                                                        <svg class="h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9.75v6.75m0 0-3-3m3 3 3-3m-8.25 6a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                                                                        </svg>
+                                                                        Playing
+                                                                    </span>
+                                                                </td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 70px; min-width: 70px;">{{ client.id }}</td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 150px; min-width: 150px;">{{ client.address }}</td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 90px; min-width: 90px;">
+                                                                    {{ formatTime(client.time / 1000) }}
+                                                                </td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 90px; min-width: 90px;">
+                                                                    <span v-if="client.dropped" class="text-red-600">{{ client.dropped }}</span>
+                                                                    <span v-else>-</span>
+                                                                </td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 90px; min-width: 90px;">
+                                                                    <span v-if="client.avsync">{{ client.avsync }}ms</span>
+                                                                    <span v-else>-</span>
+                                                                </td>
+                                                                <td class="px-3 py-2 text-sm" style="width: 170px; min-width: 170px;">
+                                                                    <div class="truncate" :title="client.flashver">
+                                                                        {{ client.flashver }}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else class="p-6 text-center text-gray-500 bg-indigo-50">
+                        <!-- Arrow Icon -->
+                        <svg class="h-12 w-12 mx-auto text-indigo-300 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4m12 2l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <p class="text-lg font-medium">No active streams</p>
+                        <p class="text-sm mt-1">Start a stream to see its statistics here</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4 text-gray-500 text-sm p-4">
+                <div>Data updates every 5 seconds · Last updated: {{ lastUpdated }} 
+                    <span v-if="updateTime > 0" class="text-xs text-gray-400">({{ updateTime }}ms)</span>
+                </div>
+                <div class="mt-1 text-xs text-gray-400">
+                    💡 Tip: Click stream name to copy RTMP URL to clipboard
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+
+        createApp({
+            setup() {
+                const rtmpData = ref({});
+                const applications = ref([]);
+                const isLoading = ref(false);
+                const isOnline = ref(true);
+                const lastUpdated = ref('');
+
+                const errorMessage = ref('');
+                const retryCount = ref(0);
+                const hostname = ref(window.location.hostname);
+                const updateTime = ref(0); // 数据更新耗时
+                let refreshInterval = null;
+                let isFirstLoad = true;
+                let lastDataHash = '';
+
+                // 简单哈希函数，比 JSON.stringify 快很多
+                const simpleHash = (str) => {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        const char = str.charCodeAt(i);
+                        hash = ((hash << 5) - hash) + char;
+                        hash = hash & hash; // 转换为32位整数
+                    }
+                    return hash.toString();
+                };
+
+                // 优化的格式化函数 - 使用缓存避免重复计算
+                const bytesCache = new Map();
+                const timeCache = new Map();
+
+                const formatBytes = (bytes) => {
+                    if (!bytes || bytes === 0) return '0 B';
+
+                    if (bytesCache.has(bytes)) {
+                        return bytesCache.get(bytes);
+                    }
+
+                    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                    const result = (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+
+                    // 限制缓存大小避免内存泄漏
+                    if (bytesCache.size > 1000) {
+                        bytesCache.clear();
+                    }
+                    bytesCache.set(bytes, result);
+
+                    return result;
+                };
+
+                const formatTime = (seconds) => {
+                    if (!seconds) return '0s';
+
+                    if (timeCache.has(seconds)) {
+                        return timeCache.get(seconds);
+                    }
+
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+
+                    let result = '';
+                    if (days > 0) result += `${days}d `;
+                    if (hours > 0) result += `${hours}h `;
+                    if (minutes > 0) result += `${minutes}m `;
+                    if (days === 0) result += `${secs}s`;
+
+                    result = result.trim();
+
+                    // 限制缓存大小
+                    if (timeCache.size > 1000) {
+                        timeCache.clear();
+                    }
+                    timeCache.set(seconds, result);
+
+                    return result;
+                };
+
+                // Computed 属性优化
+                const totalStreams = computed(() => {
+                    return applications.value.reduce((sum, app) => sum + app.live.streams.length, 0);
+                });
+
+                const totalClients = computed(() => {
+                    return applications.value.reduce((sum, app) => sum + app.live.nclients, 0);
+                });
+
+                const activeStreams = computed(() => {
+                    return applications.value.reduce((sum, app) => 
+                        sum + app.live.streams.filter(stream => stream.clients.length > 0).length, 0
+                    );
+                });
+
+                const parseXMLData = (xmlText) => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(xmlText, 'text/xml');
+
+                    // Check for parsing errors
+                    if (doc.documentElement.nodeName === 'parsererror') {
+                        throw new Error('Failed to parse XML');
+                    }
+
+                    const rtmp = doc.querySelector('rtmp');
+                    if (!rtmp) {
+                        throw new Error('Invalid RTMP data structure');
+                    }
+
+                    // 辅助函数：获取文本内容并转换类型
+                    const getTextContent = (parent, selector, defaultValue = '') => {
+                        return parent.querySelector(selector)?.textContent || defaultValue;
+                    };
+
+                    const getIntContent = (parent, selector, defaultValue = 0) => {
+                        return parseInt(getTextContent(parent, selector, defaultValue.toString())) || defaultValue;
+                    };
+
+                    const getFloatContent = (parent, selector, defaultValue = 0) => {
+                        return parseFloat(getTextContent(parent, selector, defaultValue.toString())) || defaultValue;
+                    };
+
+                    // Extract server data
+                    const serverData = {
+                        nginx_version: getTextContent(rtmp, 'nginx_version'),
+                        nginx_rtmp_version: getTextContent(rtmp, 'nginx_rtmp_version'),
+                        compiler: getTextContent(rtmp, 'compiler'),
+                        built: getTextContent(rtmp, 'built'),
+                        uptime: getIntContent(rtmp, 'uptime'),
+                        naccepted: getIntContent(rtmp, 'naccepted'),
+                        bw_in: getIntContent(rtmp, 'bw_in'),
+                        bw_out: getIntContent(rtmp, 'bw_out'),
+                        bytes_in: getIntContent(rtmp, 'bytes_in'),
+                        bytes_out: getIntContent(rtmp, 'bytes_out')
+                    };
+
+                    // Extract applications
+                    const apps = [];
+                    const applicationElements = rtmp.querySelectorAll('server > application');
+
+                    applicationElements.forEach(app => {
+                        const appData = {
+                            name: getTextContent(app, 'name'),
+                            live: {
+                                nclients: getIntContent(app, 'live > nclients'),
+                                streams: []
+                            }
+                        };
+
+                        // Extract streams
+                        const streamElements = app.querySelectorAll('live > stream');
+                        streamElements.forEach(stream => {
+                            const streamData = {
+                                name: getTextContent(stream, 'name'),
+                                time: getIntContent(stream, 'time'),
+                                bw_in: getIntContent(stream, 'bw_in'),
+                                bw_out: getIntContent(stream, 'bw_out'),
+                                bw_audio: getIntContent(stream, 'bw_audio'),
+                                bw_video: getIntContent(stream, 'bw_video'),
+                                clients: []
+                            };
+
+                            // Extract meta information
+                            const metaVideo = stream.querySelector('meta > video');
+                            const metaAudio = stream.querySelector('meta > audio');
+                            if (metaVideo || metaAudio) {
+                                streamData.meta = {};
+                                if (metaVideo) {
+                                    streamData.meta.video = {
+                                        width: getIntContent(metaVideo, 'width'),
+                                        height: getIntContent(metaVideo, 'height'),
+                                        frame_rate: getFloatContent(metaVideo, 'frame_rate'),
+                                        codec: getTextContent(metaVideo, 'codec')
+                                    };
+                                }
+                                if (metaAudio) {
+                                    streamData.meta.audio = {
+                                        codec: getTextContent(metaAudio, 'codec'),
+                                        sample_rate: getIntContent(metaAudio, 'sample_rate')
+                                    };
+                                }
+                            }
+
+                            // Extract clients - 批量处理
+                            const clientElements = stream.querySelectorAll('client');
+                            const clients = Array.from(clientElements).map(client => ({
+                                id: getIntContent(client, 'id'),
+                                address: getTextContent(client, 'address'),
+                                time: getIntContent(client, 'time'),
+                                flashver: getTextContent(client, 'flashver'),
+                                dropped: getIntContent(client, 'dropped'),
+                                avsync: getIntContent(client, 'avsync'),
+                                publishing: client.querySelector('publishing') !== null
+                            }));
+                            
+                            streamData.clients = clients;
+                            appData.live.streams.push(streamData);
+                        });
+
+                        apps.push(appData);
+                    });
+
+                    return { serverData, apps };
+                };
+
+                const fetchData = async (isRetry = false) => {
+                    const startTime = performance.now();
+
+                    try {
+                        if (!isRetry) {
+                            isLoading.value = true;
+                        }
+
+                        const response = await fetch('/stat.xml?' + Date.now()); // 添加时间戳避免缓存
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        const xmlText = await response.text();
+
+                        if (!xmlText.trim()) {
+                            throw new Error('Empty response received');
+                        }
+
+                        // 使用原始 XML 文本的哈希来检测变化，比 JSON.stringify 快得多
+                        const currentDataHash = simpleHash(xmlText);
+
+                        if (currentDataHash !== lastDataHash || isFirstLoad) {
+                            const { serverData, apps } = parseXMLData(xmlText);
+                            rtmpData.value = serverData;
+                            applications.value = apps;
+                            lastDataHash = currentDataHash;
+                            isFirstLoad = false;
+                        }
+
+                        isOnline.value = true;
+                        errorMessage.value = '';
+                        retryCount.value = 0;
+                        lastUpdated.value = new Date().toLocaleTimeString();
+
+                        // 记录更新性能
+                        updateTime.value = Math.round(performance.now() - startTime);
+                    } catch (error) {
+                        console.error('Failed to fetch data:', error);
+                        isOnline.value = false;
+                        errorMessage.value = error.message;
+
+                        // 重试机制（最多重试3次）
+                        if (retryCount.value < 3) {
+                            retryCount.value++;
+                            setTimeout(() => {
+                                fetchData(true);
+                            }, Math.min(1000 * Math.pow(2, retryCount.value), 10000)); // 指数退避，最大10秒
+                        }
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                const copyRtmpUrl = (appName, streamName, event) => {
+                    const rtmpUrl = `rtmp://${hostname.value}:1935/${appName}/${streamName}`;
+
+                    // 尝试现代剪贴板 API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(rtmpUrl).then(() => {
+                            showCopyFeedback(event.target, true);
+                        }).catch(err => {
+                            console.warn('Modern clipboard API failed, trying fallback:', err);
+                            fallbackCopyText(rtmpUrl, event.target);
+                        });
+                    } else {
+                        // 兜底方案
+                        fallbackCopyText(rtmpUrl, event.target);
+                    }
+                };
+
+                const fallbackCopyText = (text, element) => {
+                    try {
+                        // 创建临时文本域
+                        const textArea = document.createElement('textarea');
+                        textArea.value = text;
+                        textArea.style.position = 'fixed';
+                        textArea.style.opacity = '0';
+                        textArea.style.pointerEvents = 'none';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textArea);
+
+                        showCopyFeedback(element, successful);
+                    } catch (err) {
+                        console.error('Fallback copy failed:', err);
+                        showCopyFeedback(element, false);
+                    }
+                };
+
+                const showCopyFeedback = (element, success) => {
+                    // 视觉反馈
+                    const originalColor = element.style.color;
+                    element.style.color = success ? '#059669' : '#DC2626'; // 绿色成功，红色失败
+                    setTimeout(() => {
+                        element.style.color = originalColor;
+                    }, 500);
+
+                    // 临时提示文本
+                    const feedback = document.createElement('div');
+                    feedback.textContent = success ? 'Copied!' : 'Copy failed';
+                    feedback.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: ${success ? '#10B981' : '#EF4444'};
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        z-index: 10000;
+                        transition: opacity 0.3s ease;
+                    `;
+                    document.body.appendChild(feedback);
+
+                    setTimeout(() => {
+                        feedback.style.opacity = '0';
+                        setTimeout(() => document.body.removeChild(feedback), 300);
+                    }, 2000);
+                };
+
+                // 页面可见性 API 优化
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        // 页面隐藏时停止刷新
+                        if (refreshInterval) {
+                            clearInterval(refreshInterval);
+                            refreshInterval = null;
+                        }
+                    } else {
+                        // 页面显示时恢复刷新
+                        if (!refreshInterval) {
+                            fetchData(); // 立即获取最新数据
+                            refreshInterval = setInterval(fetchData, 5000);
+                        }
+                    }
+                };
+
+                onMounted(() => {
+                    fetchData();
+                    refreshInterval = setInterval(fetchData, 5000);
+
+                    // 监听页面可见性变化
+                    document.addEventListener('visibilitychange', handleVisibilityChange);
+                });
+
+                onUnmounted(() => {
+                    // 清理所有资源
+                    if (refreshInterval) {
+                        clearInterval(refreshInterval);
+                        refreshInterval = null;
+                    }
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+                    // 清理缓存
+                    bytesCache.clear();
+                    timeCache.clear();
+                });
+
+                return {
+                    rtmpData,
+                    applications,
+                    isLoading,
+                    isOnline,
+                    lastUpdated,
+                    errorMessage,
+                    retryCount,
+                    hostname,
+                    updateTime,
+                    totalStreams,
+                    totalClients,
+                    activeStreams,
+                    formatBytes,
+                    formatTime,
+                    copyRtmpUrl
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
