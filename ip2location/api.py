@@ -3,7 +3,11 @@ import re
 import ipaddress
 import logging
 import json
+import warnings
 from typing import Optional, Dict, Any
+
+# 禁止 pydub 的 ffmpeg 警告
+warnings.filterwarnings('ignore', message="Couldn't find ffmpeg or avconv.*", category=RuntimeWarning)
 
 import requests
 from flask import Flask, request, jsonify
@@ -297,4 +301,4 @@ def internal_error(error):
 
 if __name__ == '__main__':
     logger.info('Starting API service (port: 5000)')
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
