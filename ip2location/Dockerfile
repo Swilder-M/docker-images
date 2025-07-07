@@ -3,9 +3,7 @@ FROM python:3.12.10-alpine
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    FLASK_APP=api.py \
-    FLASK_ENV=production
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
@@ -21,4 +19,4 @@ COPY api.py ./
 
 EXPOSE 5000
 
-CMD ["python", "api.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "5", "--timeout", "60", "--log-level", "info", "api:app"]
