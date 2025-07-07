@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any
 warnings.filterwarnings('ignore', message="Couldn't find ffmpeg or avconv.*", category=RuntimeWarning)
 
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from fake_useragent import UserAgent
 from pypasser import reCaptchaV3
 
@@ -244,15 +244,20 @@ def query_client_ip():
     ip_info = get_ip_info(client_ip)
 
     if ip_info:
-        return jsonify({
+        # 客户端 IP 查询不缓存，因为每个客户端的 IP 都不同
+        response = make_response(jsonify({
             'success': True,
             'data': ip_info
-        })
+        }), 200)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
     else:
-        return jsonify({
+        response = make_response(jsonify({
             'success': False,
             'error': 'Unable to retrieve IP information, please try again later'
-        }), 500
+        }), 500)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
 
 @app.route('/<ip>', methods=['GET'])
@@ -263,23 +268,32 @@ def query_specific_ip(ip: str):
     # 验证 IP 地址格式
     if not validate_ip_address(ip):
         logger.warning(f'Invalid IP: {ip}')
-        return jsonify({
+        response = make_response(jsonify({
             'success': False,
             'error': 'Invalid IP address format'
-        }), 400
+        }), 400)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
     ip_info = get_ip_info(ip)
 
     if ip_info:
-        return jsonify({
+        # 指定 IP 查询成功时缓存一周
+        response = make_response(jsonify({
             'success': True,
             'data': ip_info
-        })
+        }), 200)
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        response.headers['Expires'] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', 
+                                                   time.gmtime(time.time() + 604800))
+        return response
     else:
-        return jsonify({
+        response = make_response(jsonify({
             'success': False,
             'error': 'Unable to retrieve IP information, please try again later'
-        }), 500
+        }), 500)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
 
 
 @app.errorhandler(404)
