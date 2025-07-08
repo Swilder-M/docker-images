@@ -235,21 +235,44 @@ def get_client_ip() -> str:
     return request.remote_addr
 
 
-@app.route('/', methods=['GET'])
-def query_client_ip():
+def query_ip_info(ip: Optional[str] = None):
     """
-    查询客户端 IP 地址信息
+    查询 IP 地址信息的统一处理函数
     """
-    client_ip = get_client_ip()
-    ip_info = get_ip_info(client_ip)
+    # 如果没有提供 IP，则获取客户端 IP
+    if ip is None:
+        target_ip = get_client_ip()
+        is_client_ip = True
+    else:
+        # 验证 IP 地址格式
+        if not validate_ip_address(ip):
+            logger.warning(f'Invalid IP: {ip}')
+            response = make_response(jsonify({
+                'success': False,
+                'error': 'Invalid IP address format'
+            }), 400)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return response
+        target_ip = ip
+        is_client_ip = False
+
+    ip_info = get_ip_info(target_ip)
 
     if ip_info:
-        # 客户端 IP 查询不缓存，因为每个客户端的 IP 都不同
         response = make_response(jsonify({
             'success': True,
             'data': ip_info
         }), 200)
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+
+        # 根据是否为客户端 IP 设置不同的缓存策略
+        if is_client_ip:
+            # 客户端 IP 查询不缓存，因为每个客户端的 IP 都不同
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        else:
+            # 指定 IP 查询成功时缓存一周
+            response.headers['Cache-Control'] = 'public, max-age=604800'
+            response.headers['Expires'] = time.strftime('%a, %d %b %Y %H:%M:%S GMT',
+                                                        time.gmtime(time.time() + 604800))
         return response
     else:
         response = make_response(jsonify({
@@ -258,6 +281,14 @@ def query_client_ip():
         }), 500)
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
+
+
+@app.route('/', methods=['GET'])
+def query_client_ip():
+    """
+    查询客户端 IP 地址信息
+    """
+    return query_ip_info()
 
 
 @app.route('/<ip>', methods=['GET'])
@@ -265,35 +296,7 @@ def query_specific_ip(ip: str):
     """
     查询指定 IP 地址信息
     """
-    # 验证 IP 地址格式
-    if not validate_ip_address(ip):
-        logger.warning(f'Invalid IP: {ip}')
-        response = make_response(jsonify({
-            'success': False,
-            'error': 'Invalid IP address format'
-        }), 400)
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
-
-    ip_info = get_ip_info(ip)
-
-    if ip_info:
-        # 指定 IP 查询成功时缓存一周
-        response = make_response(jsonify({
-            'success': True,
-            'data': ip_info
-        }), 200)
-        response.headers['Cache-Control'] = 'public, max-age=604800'
-        response.headers['Expires'] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', 
-                                                   time.gmtime(time.time() + 604800))
-        return response
-    else:
-        response = make_response(jsonify({
-            'success': False,
-            'error': 'Unable to retrieve IP information, please try again later'
-        }), 500)
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
+    return query_ip_info(ip)
 
 
 @app.errorhandler(404)
