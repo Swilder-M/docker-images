@@ -4,7 +4,9 @@ import ipaddress
 import logging
 import json
 import warnings
+import os
 from typing import Optional, Dict, Any
+from copy import deepcopy
 
 # 禁止 pydub 的 ffmpeg 警告
 warnings.filterwarnings('ignore', message="Couldn't find ffmpeg or avconv.*", category=RuntimeWarning)
@@ -22,6 +24,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# 缓存目录
+CACHE_DIR = 'cache'
+
+# 确保缓存目录存在
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def get_random_session_id() -> str:
@@ -45,6 +53,79 @@ def validate_ip_address(ip: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def get_c_segment(ip: str) -> Optional[str]:
+    """
+    获取 IP 地址的 C 段（前三个字节）
+    例如：192.168.1.100 -> 192.168.1
+    """
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        if ip_obj.version == 4:
+            # IPv4: 获取前三个字节
+            return '.'.join(ip.split('.')[:3])
+        elif ip_obj.version == 6:
+            # IPv6: 获取 /64 网络前缀
+            network = ipaddress.IPv6Network(f'{ip}/64', strict=False)
+            return str(network.network_address)
+        return None
+    except ValueError:
+        return None
+
+
+def get_cache_file_path(c_segment: str) -> str:
+    """
+    根据 C 段获取缓存文件路径
+    """
+    # 将 C 段中的特殊字符替换为下划线，避免文件名问题
+    safe_segment = c_segment.replace(':', '_').replace('.', '_')
+    return os.path.join(CACHE_DIR, f'{safe_segment}.json')
+
+
+def load_cache(ip: str) -> Optional[Dict[Any, Any]]:
+    """
+    从缓存中加载 IP 信息
+    """
+    c_segment = get_c_segment(ip)
+    if not c_segment:
+        return None
+    
+    cache_file = get_cache_file_path(c_segment)
+    
+    try:
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cached_data = json.load(f)
+                
+                # 更新缓存数据中的 IP 地址为当前请求的 IP
+                if 'data' in cached_data and cached_data['data']:
+                    result = deepcopy(cached_data)
+                    result['data']['ip'] = ip
+                    logger.info(f'IP {ip}: Cache hit for C-segment {c_segment}')
+                    return result
+        return None
+    except Exception as e:
+        logger.error(f'IP {ip}: Cache load error: {e}')
+        return None
+
+
+def save_cache(ip: str, data: Dict[Any, Any]) -> None:
+    """
+    保存 IP 信息到缓存
+    """
+    c_segment = get_c_segment(ip)
+    if not c_segment:
+        return
+    
+    cache_file = get_cache_file_path(c_segment)
+    
+    try:
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f'IP {ip}: Cache saved for C-segment {c_segment}')
+    except Exception as e:
+        logger.error(f'IP {ip}: Cache save error: {e}')
 
 
 def get_recaptcha_response_with_retry(max_retries: int = 3) -> Optional[str]:
@@ -162,6 +243,11 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
     if not validate_ip_address(target_ip):
         logger.error(f'IP {target_ip}: Invalid IP address format')
         return None
+    
+    # 先从缓存中查找
+    cached_result = load_cache(target_ip)
+    if cached_result:
+        return cached_result
 
     # 生成会话 ID，在整个流程中保持一致
     session_id = get_random_session_id()
@@ -194,6 +280,8 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
             ip_info = extract_ip_info_from_html(response.text, target_ip)
             if ip_info:
                 logger.info(f'IP {target_ip}: Query successful')
+                # 保存到缓存
+                save_cache(target_ip, ip_info)
                 return ip_info
             else:
                 logger.error(f'IP {target_ip}: Data extraction failed')
@@ -301,6 +389,7 @@ def query_specific_ip(ip: str):
 
 @app.errorhandler(404)
 def not_found(error):
+    _ = error  # Suppress unused variable warning
     return jsonify({
         'success': False,
         'error': 'Route not found'
