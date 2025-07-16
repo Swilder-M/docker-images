@@ -97,13 +97,18 @@ def load_cache(ip: str) -> Optional[Dict[Any, Any]]:
         if os.path.exists(cache_file):
             with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
-                
+                logger.info(f'IP {ip}: Cache file exists, data keys: {list(cached_data.keys()) if cached_data else "None"}')
+
                 # 更新缓存数据中的 IP 地址为当前请求的 IP
                 if 'data' in cached_data and cached_data['data']:
                     result = deepcopy(cached_data)
                     result['data']['ip'] = ip
                     logger.info(f'IP {ip}: Cache hit for C-segment {c_segment}')
                     return result
+                else:
+                    logger.info(f'IP {ip}: Cache data invalid or empty')
+        else:
+            logger.info(f'IP {ip}: Cache file not found: {cache_file}')
         return None
     except Exception as e:
         logger.error(f'IP {ip}: Cache load error: {e}')

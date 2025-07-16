@@ -27,6 +27,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY --chown=appuser:appuser api.py ./
 
+RUN mkdir -p /app/cache && \
+    chown appuser:appuser /app/cache
+
 USER appuser
 
 EXPOSE 5000
