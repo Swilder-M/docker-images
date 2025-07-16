@@ -212,6 +212,7 @@ def extract_ip_info_from_html(html_content: str, target_ip: str) -> Optional[Dic
 
         if not match:
             logger.error(f'IP {target_ip}: JSON data not found')
+            logger.error(f'IP {target_ip}: HTML content: {html_content}')
             return None
 
         json_text = match.group(1).strip()
