@@ -97,18 +97,12 @@ def load_cache(ip: str) -> Optional[Dict[Any, Any]]:
         if os.path.exists(cache_file):
             with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
-                logger.info(f'IP {ip}: Cache file exists, data keys: {list(cached_data.keys()) if cached_data else "None"}')
-
                 # 更新缓存数据中的 IP 地址为当前请求的 IP
                 if 'data' in cached_data and cached_data['data']:
                     result = deepcopy(cached_data)
                     result['data']['ip'] = ip
                     logger.info(f'IP {ip}: Cache hit for C-segment {c_segment}')
                     return result
-                else:
-                    logger.info(f'IP {ip}: Cache data invalid or empty')
-        else:
-            logger.info(f'IP {ip}: Cache file not found: {cache_file}')
         return None
     except Exception as e:
         logger.error(f'IP {ip}: Cache load error: {e}')
@@ -285,9 +279,14 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
             ip_info = extract_ip_info_from_html(response.text, target_ip)
             if ip_info:
                 logger.info(f'IP {target_ip}: Query successful')
+                # 构造完整的响应数据结构
+                result = {
+                    'success': True,
+                    'data': ip_info
+                }
                 # 保存到缓存
-                save_cache(target_ip, ip_info)
-                return ip_info
+                save_cache(target_ip, result)
+                return result
             else:
                 logger.error(f'IP {target_ip}: Data extraction failed')
                 return None
@@ -352,10 +351,7 @@ def query_ip_info(ip: Optional[str] = None):
     ip_info = get_ip_info(target_ip)
 
     if ip_info:
-        response = make_response(jsonify({
-            'success': True,
-            'data': ip_info
-        }), 200)
+        response = make_response(jsonify(ip_info), 200)
 
         # 根据是否为客户端 IP 设置不同的缓存策略
         if is_client_ip:
