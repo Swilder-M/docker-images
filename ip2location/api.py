@@ -233,6 +233,31 @@ def extract_ip_info_from_html(html_content: str, target_ip: str) -> Optional[Dic
         return None
 
 
+def get_ip_info_from_api(target_ip: str, api_key: str) -> Optional[Dict[Any, Any]]:
+    """
+    通过 IP2Location API 获取 IP 地址信息
+    """
+    try:
+        api_url = f'https://api.ip2location.io/?key={api_key}&ip={target_ip}'
+        response = requests.get(api_url, timeout=10)
+        
+        if response.status_code == 200:
+            # 转换 API 返回的数据格式为内部统一格式
+            result = {
+                'success': True,
+                'data': response.json()
+            }
+
+            logger.info(f'IP {target_ip}: API query successful')
+            return result
+        else:
+            logger.error(f'IP {target_ip}: API request failed, status code: {response.status_code}')
+            return None
+    except Exception as e:
+        logger.error(f'IP {target_ip}: API query error: {e}')
+        return None
+
+
 def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
     """
     获取指定 IP 地址的详细信息
@@ -243,6 +268,18 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
     if not validate_ip_address(target_ip):
         logger.error(f'IP {target_ip}: Invalid IP address format')
         return None
+    
+    # 检查是否有 API_KEY 环境变量
+    api_key = os.environ.get('API_KEY')
+    if api_key:
+        logger.info(f'IP {target_ip}: Using API key for query')
+        result = get_ip_info_from_api(target_ip, api_key)
+        if result:
+            # 保存到缓存
+            save_cache(target_ip, result)
+            return result
+        else:
+            logger.warning(f'IP {target_ip}: API query failed, falling back to scraping')
     
     # 先从缓存中查找
     cached_result = load_cache(target_ip)
