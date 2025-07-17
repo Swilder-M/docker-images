@@ -90,9 +90,9 @@ def load_cache(ip: str) -> Optional[Dict[Any, Any]]:
     c_segment = get_c_segment(ip)
     if not c_segment:
         return None
-    
+
     cache_file = get_cache_file_path(c_segment)
-    
+
     try:
         if os.path.exists(cache_file):
             with open(cache_file, 'r', encoding='utf-8') as f:
@@ -116,9 +116,9 @@ def save_cache(ip: str, data: Dict[Any, Any]) -> None:
     c_segment = get_c_segment(ip)
     if not c_segment:
         return
-    
+
     cache_file = get_cache_file_path(c_segment)
-    
+
     try:
         with open(cache_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -240,7 +240,7 @@ def get_ip_info_from_api(target_ip: str, api_key: str) -> Optional[Dict[Any, Any
     try:
         api_url = f'https://api.ip2location.io/?key={api_key}&ip={target_ip}'
         response = requests.get(api_url, timeout=10)
-        
+
         if response.status_code == 200:
             # 转换 API 返回的数据格式为内部统一格式
             result = {
@@ -268,7 +268,12 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
     if not validate_ip_address(target_ip):
         logger.error(f'IP {target_ip}: Invalid IP address format')
         return None
-    
+
+    # 先从缓存中查找
+    cached_result = load_cache(target_ip)
+    if cached_result:
+        return cached_result
+
     # 检查是否有 API_KEY 环境变量
     api_key = os.environ.get('API_KEY')
     if api_key:
@@ -280,11 +285,6 @@ def get_ip_info(target_ip: str) -> Optional[Dict[Any, Any]]:
             return result
         else:
             logger.warning(f'IP {target_ip}: API query failed, falling back to scraping')
-    
-    # 先从缓存中查找
-    cached_result = load_cache(target_ip)
-    if cached_result:
-        return cached_result
 
     # 生成会话 ID，在整个流程中保持一致
     session_id = get_random_session_id()
