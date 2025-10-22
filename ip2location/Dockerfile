@@ -1,37 +1,33 @@
-FROM python:3.12.10-alpine AS builder
+# 构建阶段
+FROM golang:1.24-alpine AS builder
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+# 设置工作目录
+WORKDIR /build
 
-WORKDIR /app
+# 复制 go.mod 和 go.sum
+COPY go.mod go.sum ./
 
-RUN apk add --no-cache gcc musl-dev
+# 下载依赖
+RUN go mod download
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 复制源代码
+COPY *.go ./
 
-FROM python:3.12.10-alpine
+# 编译（静态链接，压缩）
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -a -installsuffix cgo -ldflags="-s -w -extldflags '-static'" -o ip2location-server .
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+# 运行阶段 - 使用 scratch 最小化镜像
+FROM scratch
 
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
+# 从构建阶段复制 CA 证书
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-WORKDIR /app
+# 从构建阶段复制二进制文件
+COPY --from=builder /build/ip2location-server /ip2location-server
 
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-COPY --chown=appuser:appuser api.py ./
-
-RUN mkdir -p /app/cache && \
-    chown appuser:appuser /app/cache
-
-USER appuser
-
+# 暴露端口（通过环境变量 PORT 配置，默认 5000）
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "5", "--timeout", "60", "--log-level", "info", "api:app"]
+# 运行
+ENTRYPOINT ["/ip2location-server"]
