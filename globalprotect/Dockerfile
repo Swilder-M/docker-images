@@ -5,6 +5,7 @@ WORKDIR /build
 
 COPY xray-amd64 ./
 COPY xray-arm64 ./
+COPY xray-s390x ./
 COPY run.sh ./
 COPY hipreport.sh ./
 COPY vpnc-script ./
@@ -14,6 +15,7 @@ RUN mkdir -p /build-output
 RUN case "$TARGETPLATFORM" in \
         "linux/amd64") cp xray-amd64 /build-output/xray ;; \
         "linux/arm64") cp xray-arm64 /build-output/xray ;; \
+        "linux/s390x") cp xray-s390x /build-output/xray ;; \
         *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
     esac
 COPY run.sh /build-output/run.sh
