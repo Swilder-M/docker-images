@@ -51,14 +51,18 @@ AUTH_OUTPUT=$(echo "$COOKIE" | openconnect --protocol=gp \
   "$SERVER_URL" 2>&1)
 
 AUTH_EXIT=$?
+echo "[DEBUG] AUTH_OUTPUT:"
+echo "$AUTH_OUTPUT"
+echo "[DEBUG] END"
+
 if [ $AUTH_EXIT -ne 0 ]; then
   echo "[-] 认证失败: $AUTH_OUTPUT"
   exit 1
 fi
 
 # 提取会话 cookie
-# openconnect --authenticate 输出格式: COOKIE=authcookie=xxx&portal=xxx&user=xxx
-SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "^COOKIE=" | sed 's/^COOKIE=//')
+# openconnect --authenticate 输出格式: COOKIE='authcookie=xxx&portal=xxx&user=xxx'
+SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "^COOKIE=" | sed 's/^COOKIE=//' | tr -d "'")
 
 if [ -n "$SESSION_COOKIE" ]; then
   echo "$SESSION_COOKIE" > "$SESSION_FILE"
