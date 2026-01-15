@@ -56,9 +56,9 @@ if [ $AUTH_EXIT -ne 0 ]; then
   exit 1
 fi
 
-# 提取会话 cookie（格式: 'authcookie=...&portal=...&user=...'）
-# 查找包含 authcookie 的行，去掉单引号
-SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "authcookie=" | tr -d "'")
+# 提取会话 cookie
+# openconnect --authenticate 输出格式: COOKIE=authcookie=xxx&portal=xxx&user=xxx
+SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "^COOKIE=" | sed 's/^COOKIE=//')
 
 if [ -n "$SESSION_COOKIE" ]; then
   echo "$SESSION_COOKIE" > "$SESSION_FILE"
