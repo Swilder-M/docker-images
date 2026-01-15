@@ -6,7 +6,6 @@ mkdir -p /var/lib/openconnect
 nohup /usr/bin/xray run -c /etc/xray.json > /var/log/xray.log 2>&1 &
 
 # 公共参数
-COMMON_ARGS="--protocol=gp --os linux-64"
 if [ "${HIP_CHECK:-0}" -eq 1 ]; then
   CSD_ARG="--csd-wrapper=/usr/bin/hipreport.sh"
 else
@@ -16,11 +15,12 @@ fi
 # 尝试使用保存的会话 cookie
 if [ -f "$SESSION_FILE" ]; then
   echo "[*] 尝试使用保存的会话 cookie..."
-  SESSION_COOKIE=$(cat $SESSION_FILE)
+  SESSION_COOKIE=$(cat "$SESSION_FILE" | tr -d "'")
 
-  openconnect $COMMON_ARGS \
+  openconnect --protocol=gp \
     --useragent "PAN GlobalProtect" \
     --user "$USERNAME" \
+    --os linux-64 \
     --cookie "$SESSION_COOKIE" \
     $CSD_ARG \
     "$SERVER_URL" -vvv &
@@ -33,16 +33,17 @@ if [ -f "$SESSION_FILE" ]; then
     exit $?
   else
     echo "[-] 会话 cookie 已失效，使用 prelogin-cookie 重新认证"
-    rm -f $SESSION_FILE
+    rm -f "$SESSION_FILE"
   fi
 fi
 
-# 使用 prelogin-cookie 认证并保存会话
+# 使用 prelogin-cookie 认证
 echo "[*] 使用 prelogin-cookie 认证..."
 
-AUTH_OUTPUT=$(echo "$COOKIE" | openconnect $COMMON_ARGS \
+AUTH_OUTPUT=$(echo "$COOKIE" | openconnect --protocol=gp \
   --useragent "PAN GlobalProtect" \
   --user "$USERNAME" \
+  --os linux-64 \
   --usergroup gateway:prelogin-cookie \
   --authenticate \
   --passwd-on-stdin \
@@ -55,18 +56,32 @@ if [ $AUTH_EXIT -ne 0 ]; then
   exit 1
 fi
 
-# 提取并保存会话 cookie
-SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "^COOKIE=" | cut -d= -f2-)
+# 提取会话 cookie（格式: 'authcookie=...&portal=...&user=...'）
+# 查找包含 authcookie 的行，去掉单引号
+SESSION_COOKIE=$(echo "$AUTH_OUTPUT" | grep "authcookie=" | tr -d "'")
+
 if [ -n "$SESSION_COOKIE" ]; then
-  echo "$SESSION_COOKIE" > $SESSION_FILE
-  echo "[+] 会话 cookie 已保存"
+  echo "$SESSION_COOKIE" > "$SESSION_FILE"
+  echo "[+] 会话 cookie 已保存: $SESSION_COOKIE"
+else
+  echo "[-] 未能提取会话 cookie，使用原始方式连接"
+  echo "$COOKIE" | openconnect --protocol=gp \
+    --useragent "PAN GlobalProtect" \
+    --user "$USERNAME" \
+    --os linux-64 \
+    --usergroup gateway:prelogin-cookie \
+    --passwd-on-stdin \
+    $CSD_ARG \
+    "$SERVER_URL" -vvv
+  exit $?
 fi
 
 # 使用认证信息建立连接
 echo "[*] 建立 VPN 连接..."
-openconnect $COMMON_ARGS \
+openconnect --protocol=gp \
   --useragent "PAN GlobalProtect" \
   --user "$USERNAME" \
+  --os linux-64 \
   --cookie "$SESSION_COOKIE" \
   $CSD_ARG \
   "$SERVER_URL" -vvv
